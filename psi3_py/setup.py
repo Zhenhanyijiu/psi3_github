@@ -27,6 +27,10 @@ def compile_miracl_xxhash_boost():
 
 
 # cython编译
+# BIN_PATH = '../tpsi_bin_bak'
+BIN_PATH = '../psi3_bin'
+
+
 def start_setup():
     # 用源文件编译,获取源文件列表
     source_files = []
@@ -44,7 +48,7 @@ def start_setup():
     source_files += get_source_files("../libOPRF/OPPRF")
     source_files += get_source_files("../libOPRF/Hashing")
     # psi3
-    source_files += get_source_files("../psi3_bin")
+    source_files += get_source_files(BIN_PATH)
     # libPaXoS
     source_files += ['../libPaXoS/ObliviousDictionary.cpp',
                      '../libPaXoS/gf2e_mat_solve.cpp',
@@ -53,7 +57,7 @@ def start_setup():
     LINBOX_DEV_PATH = '../libdev'
     # 获取头文件路径路径，-I
     #   '../thirdparty/linux/ntl/include',
-    include_dirs = ["../psi3_bin",
+    include_dirs = [BIN_PATH,
                     '../cryptoTools',
                     '../thirdparty/linux/boost/includes',
                     '../libOPRF',

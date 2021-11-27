@@ -9,7 +9,7 @@ if [ ! -d "./libdev" ]; then
  	echo "dev_path:`pwd`/libdev"
 else
 	echo "=======存在libdev目录========"
-	rm -rf ./lindev/*
+	rm -rf ./libdev/*
 fi
 DEV_PARH=`pwd`/libdev
 echo ${DEV_PARH}

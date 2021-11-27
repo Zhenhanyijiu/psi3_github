@@ -40,8 +40,8 @@
 #-L ../thirdparty/linux/ntl/src/ \
 #编译ntl
 
-CURRENT_PATH='pwd'
-
+CURRENT_PATH="$PWD"
+echo ${CURRENT_PATH}
 if [ ! -f "../thirdparty/linux/ntl-11.4.3.tar.gz" ];then
     # cd ../thirdparty/linux/ntl/src/
     cd ../thirdparty/linux/
@@ -49,7 +49,7 @@ if [ ! -f "../thirdparty/linux/ntl-11.4.3.tar.gz" ];then
     tar zxvf ntl-11.4.3.tar.gz
     mv ntl-11.4.3 ntl
     cd ntl/src/
-    ./configure PREFIX=`pwd`
+    ./configure PREFIX=`pwd` GMP_PREFIX="${CURRENT_PATH}/../libdev"
     make -j4
     make install
     cp -r lib/libntl.a .
@@ -57,8 +57,8 @@ if [ ! -f "../thirdparty/linux/ntl-11.4.3.tar.gz" ];then
     # make -j4 ./ntl.a 
     # mv ./ntl.a ./libntl.a
     # bash ntl.get
-    cd -
-    cd ../../psi3_bin/
+    # cd - & cd ../../psi3_bin/
+    cd ${CURRENT_PATH}
 fi
 
 echo "========pwds start==========="
@@ -66,10 +66,14 @@ pwd
 pwd
 echo "========pwds end=============="
 
+if [ -f "psi3" ];then
+    rm -rf psi3
+fi
+
 g++ -O3 -DNDEBUG -O2 -g -O0 -ffunction-sections -Wall -Wfatal-errors \
 -maes -msse2 -msse3 -msse4.1 -mpclmul -std=c++11 -pthread \
 -DNO_INTEL_ASM_SHA1=1 -DTEST_PSI3 \
--I ../psi3_bin \
+-I . \
 -I ../cryptoTools \
 -I ../thirdparty/linux/boost/includes \
 -I ../libdev/include \
@@ -91,7 +95,7 @@ g++ -O3 -DNDEBUG -O2 -g -O0 -ffunction-sections -Wall -Wfatal-errors \
 ../libOPRF/Hashing/*.cpp \
 ../libPaXoS/ObliviousDictionary.cpp \
 ../libPaXoS/gf2e_mat_solve.cpp \
-../psi3_bin/*.cpp \
+./*.cpp \
 ../libPaXoS/xxHash/libxxhash.a \
 ../libdev/lib/liblinbox.a \
 ../libdev/lib/libgivaro.a \
@@ -115,4 +119,4 @@ g++ -O3 -DNDEBUG -O2 -g -O0 -ffunction-sections -Wall -Wfatal-errors \
 # /tmp/lib/libopenblas.a \
 # /tmp/lib/libgmp.a \
 #-lgomp 
-#../libdev/lib/libgmp.a \
+#../libdev/lib/libgmp.a \ 

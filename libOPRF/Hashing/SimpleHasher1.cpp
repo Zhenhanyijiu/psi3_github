@@ -5,45 +5,42 @@
 #include "Common/Log.h"
 #include "Common/Log1.h"
 #include <numeric>
-
+#include <stdio.h>
 namespace osuCrypto
 {
 
-	SimpleParam1 k2n24s40SimpleParam1
-	{ { 1.11,0.17 },{ 3,2 },{ 31,63 },{5,6} };
-	SimpleParam1 k2n20s40SimpleParam1
-	{ { 1.12,0.17 },{ 3,2 },{ 30,63 } ,{ 5,6 } };
-	SimpleParam1 k2n16s40SimpleParam1
-	{ { 1.13,0.16 },{ 3,2 },{ 29,63 },{ 5,6 } };
-	SimpleParam1 k2n14s40SimpleParam1
-	{ { 1.14,0.16 },{ 3,2 },{ 28,63 },{ 5,6 } };
-	SimpleParam1 k2n12s40SimpleParam1
-	{ { 1.17,0.15 },{ 3,2 },{ 27,63 },{ 5,6 } };
-	SimpleParam1 k2n08s40SimpleParam1
-	{ { 1.17,0.15 },{ 3,2 },{ 27,63 },{ 5,6 } };
+	// SimpleParam1 k2n24s40SimpleParam1{{1.11, 0.17}, {3, 2}, {31, 63}, {5, 6}};
+	// SimpleParam1 k2n24s40SimpleParam1{{1.3, 0.17}, {3, 2}, {31, 63}, {5, 6}};
+	// SimpleParam1 k2n24s40SimpleParam1{{1.4, 0.17}, {3, 2}, {31, 63}, {5, 6}};
+	// SimpleParam1 k2n24s40SimpleParam1{{1.32, 0.17}, {3, 2}, {31, 63}, {5, 6}};
+	// SimpleParam1 k2n24s40SimpleParam1{{1.31, 0.17}, {3, 2}, {31, 63}, {5, 6}};
+	// SimpleParam1 k2n24s40SimpleParam1{{1.5, 0.17}, {3, 2}, {31, 63}, {5, 6}};
+	// SimpleParam1 k2n24s40SimpleParam1{{1.6, 0.17}, {3, 2}, {31, 63}, {5, 6}};
+	SimpleParam1 k2n24s40SimpleParam1{{2.0, 0.19}, {3, 2}, {31, 63}, {5, 6}};
+	SimpleParam1 k2n20s40SimpleParam1{{1.12, 0.17}, {3, 2}, {30, 63}, {5, 6}};
+	SimpleParam1 k2n16s40SimpleParam1{{1.13, 0.16}, {3, 2}, {29, 63}, {5, 6}};
+	SimpleParam1 k2n14s40SimpleParam1{{1.14, 0.16}, {3, 2}, {28, 63}, {5, 6}};
+	SimpleParam1 k2n12s40SimpleParam1{{1.17, 0.15}, {3, 2}, {27, 63}, {5, 6}};
+	SimpleParam1 k2n08s40SimpleParam1{{1.17, 0.15}, {3, 2}, {27, 63}, {5, 6}};
 
 	// not sure if this needs a stash of 40, but should be safe enough.
-	SimpleParam1 k2n07s40SimpleParam1
-	{ { 1.5,0.17 },{ 3,2 },{ 27,64 },{ 5,6 } };
+	SimpleParam1 k2n07s40SimpleParam1{{1.5, 0.17}, {3, 2}, {27, 64}, {5, 6}};
 
-
-	SimpleParam1 knSimpleParamNoStash
-	{ { 1.3,0.17 },{ 3,2 },{ 27,64 },{ 5,6 } };
-
+	SimpleParam1 knSimpleParamNoStash{{1.3, 0.17}, {3, 2}, {27, 64}, {5, 6}};
+	// SimpleParam1 knSimpleParamNoStash{{1.6, 0.17}, {3, 2}, {31, 63}, {5, 6}};
 
 	SimpleHasher1::SimpleHasher1()
 	{
 	}
 
-
 	SimpleHasher1::~SimpleHasher1()
 	{
 	}
 
+	u64 SimpleHasher1::maxRealBinSize()
+	{
 
-	u64 SimpleHasher1::maxRealBinSize() {
-	
-		u64 rs=0;
+		u64 rs = 0;
 		for (u64 i = 0; i < mBins.size(); ++i)
 		{
 			if (mBins[i].mIdx.size() > 0)
@@ -52,7 +49,7 @@ namespace osuCrypto
 					rs = mBins[i].mIdx.size();
 			}
 		}
-		
+
 		realBinSizeCount1.resize(32);
 		for (u64 i = 0; i < mBinCount[0]; ++i)
 		{
@@ -61,8 +58,7 @@ namespace osuCrypto
 				if (mBins[i].mIdx.size() == j)
 					realBinSizeCount1[j]++;
 			}
-			
-		}		
+		}
 
 		realBinSizeCount2.resize(64);
 		for (u64 i = mBinCount[0]; i < mBins.size(); ++i)
@@ -72,14 +68,13 @@ namespace osuCrypto
 				if (mBins[i].mIdx.size() == j)
 					realBinSizeCount2[j]++;
 			}
-
 		}
 
 		return rs;
 	}
 
-	void SimpleHasher1::print(u64 IdxP, bool isIdx, bool isOPRF, 
-		bool isMap, bool isPos, u64 opt) const
+	void SimpleHasher1::print(u64 IdxP, bool isIdx, bool isOPRF,
+							  bool isMap, bool isPos, u64 opt) const
 	{
 
 		std::cout << IoStream::lock;
@@ -94,17 +89,17 @@ namespace osuCrypto
 
 			//std::cout << " contains " << mBins[i].size() << " elements" << std::endl;
 			//Log::out << " contains " << mBins[i].size() << " elements" << Log::endl;
-		
 
 			if (mBins[i].mIdx.size() > 0)
 
 				if (isOPRF && mBins[i].mIdx.size() != mBins[i].mValOPRF[IdxP].size())
 				{
 					Log::out << "mBins[i].mIdx.size() != mBins[i].mValOPRF.size()" << Log::endl;
-					Log::out << "mBins[i].mIdx.size()= "<< mBins[i].mIdx.size() << Log::endl;
+					Log::out << "mBins[i].mIdx.size()= " << mBins[i].mIdx.size() << Log::endl;
 					Log::out << "mBins[i].mValOPRF.size()= " << mBins[i].mValOPRF.size() << Log::endl;
 				}
-				else if (mBins[i].mIdx.size() != mBins[i].mBits[IdxP].mMaps.size() && isMap) {
+				else if (mBins[i].mIdx.size() != mBins[i].mBits[IdxP].mMaps.size() && isMap)
+				{
 					Log::out << "mBins[i].mIdx.size() != mBins[i].mMaps.size()" << Log::endl;
 					Log::out << "mBins[i].mIdx.size()= " << mBins[i].mIdx.size() << Log::endl;
 					Log::out << "mBins[i].mMaps.size()= " << mBins[i].mBits[IdxP].mMaps.size() << Log::endl;
@@ -113,7 +108,6 @@ namespace osuCrypto
 				else if (i < mBinCount[0] && mBins[i].mBits[IdxP].mPos.size() != mNumBits[0] && isPos)
 				{
 					Log::out << "mBins[i].mBits.mPos.size() != mNumBits" << Log::endl;
-
 				}
 				else if (i > mBinCount[0] - 1 && mBins[i].mBits[IdxP].mPos.size() != mNumBits[1] && isPos)
 				{
@@ -121,7 +115,8 @@ namespace osuCrypto
 				}
 				else
 				{
-					if (isPos) {
+					if (isPos)
+					{
 						Log::out << "    c_Pos= ";
 						for (u64 j = 0; j < mBins[i].mBits[IdxP].mPos.size(); j++)
 						{
@@ -133,30 +128,28 @@ namespace osuCrypto
 					for (u64 j = 0; j < mBins[i].mIdx.size(); ++j)
 					{
 						if (isIdx)
-							
-						std::cout << "    c_idx=" << mBins[i].mIdx[j] << "  hIdx=" << mBins[i].hIdx[j] << std::endl;
 
+							std::cout << "    c_idx=" << mBins[i].mIdx[j] << "  hIdx=" << mBins[i].hIdx[j] << std::endl;
 
-						if (isOPRF && (opt == 0 || opt==1))//seperated oprf
+						if (isOPRF && (opt == 0 || opt == 1)) //seperated oprf
 							Log::out << "    c_OPRF=" << mBins[i].mValOPRF[IdxP][j];
-						if (isOPRF && (opt == 2 || opt == 3))//combined oprf
-							Log::out <<"    mOprfs="
-							<< mOprfs[IdxP][mBins[i].mIdx[j]][mBins[i].hIdx[j]];
+						if (isOPRF && (opt == 2 || opt == 3)) //combined oprf
+							Log::out << "    mOprfs="
+									 << mOprfs[IdxP][mBins[i].mIdx[j]][mBins[i].hIdx[j]];
 
-						if (isMap && opt==0)
+						if (isMap && opt == 0)
 							Log::out << "    c_Map=" << static_cast<int16_t>(mBins[i].mBits[IdxP].mMaps[j]);
 
 						Log::out << Log::endl;
 						cnt++;
 					}
-
 				}
 
 			/*for (auto iter = mBins[i].mBits.mMasks.begin(); iter != mBins[i].mBits.mMasks.end(); ++iter) {
 				std::cout << static_cast<int16_t>((*iter)) << " ";
 			}
 */
-//std::cout << std::endl;
+			//std::cout << std::endl;
 			Log::out << Log::endl;
 		}
 
@@ -170,10 +163,10 @@ namespace osuCrypto
 		return std::log(bins * std::pow(balls * exp(1) / (bins * k), k)) / std::log(2);
 	}
 
-	void SimpleHasher1::init(u64 n,u64 opt, bool noStash)
-	{	
+	void SimpleHasher1::init(u64 n, u64 opt, bool noStash)
+	{
 		mN = n;
-
+		printf("======in sample,n=%ld,nostash=%d\n", n, noStash);
 		if (n <= 1 << 7)
 			mParams = k2n07s40SimpleParam1;
 		else if (n <= 1 << 8)
@@ -187,36 +180,55 @@ namespace osuCrypto
 		else if (n <= 1 << 20)
 			mParams = k2n20s40SimpleParam1;
 		else if (n <= 1 << 24)
-			mParams = k2n24s40SimpleParam1;
-		else
-			throw std::runtime_error("not implemented");
-
-		if(noStash==1)
-			mParams = knSimpleParamNoStash;
-
-		if (opt == 0)
 		{
-			mParams.mMaxBinSize[0] = std::pow(2,std::ceil(std::log2(mParams.mMaxBinSize[0])));
-			mParams.mMaxBinSize[1] = std::pow(2, std::ceil(std::log2(mParams.mMaxBinSize[1])));
+			printf("====>>sample n=%ld\n", n);
+			mParams = k2n24s40SimpleParam1;
+		}
+		// else
+		// {
+		// 	printf("======sample eeeeeeeeeeeeeeeeeeeerror,n=%ld\n", n);
+		// 	throw std::runtime_error("not implemented");
+		// }
+		mParams = k2n24s40SimpleParam1;
+
+		if (noStash == 1)
+		{
+			printf("==================Simple nostash==1==\n");
+			mParams = knSimpleParamNoStash;
 		}
 
+		// double mBinScaler[2];
+		// u64 mNumHashes[2];
+
+		// u64 mMaxBinSize[2];
+		// u64 mNumBits[2];
+		//{{1.3, 0.17}, {3, 2}, {27, 64}, {5, 6}};
+		if (opt == 0)
+		{
+			mParams.mMaxBinSize[0] = std::pow(2, std::ceil(std::log2(mParams.mMaxBinSize[0])));
+			mParams.mMaxBinSize[1] = std::pow(2, std::ceil(std::log2(mParams.mMaxBinSize[1])));
+		}
 
 		mMaxBinSize[0] = mParams.mMaxBinSize[0];
 		mMaxBinSize[1] = mParams.mMaxBinSize[1];
 
-		mBinCount[0] = mParams.mBinScaler[0]*n;
-		mBinCount[1] = mParams.mBinScaler[1] *n;
+		mBinCount[0] = mParams.mBinScaler[0] * n;
+		mBinCount[1] = mParams.mBinScaler[1] * n;
 
 		mMtx.reset(new std::mutex[mBinCount[0] + mBinCount[1]]);
 		mBins.resize(mBinCount[1] + mBinCount[0]);
+
+		printf(">>>(SimpleHasher1)mBinCount[0]:%ld\n", mBinCount[0]);
+		printf(">>>(SimpleHasher1)mBinCount[1]:%ld\n", mBinCount[1]);
+		printf(">>>(SimpleHasher1)mBins.size=mBinCount[0] + mBinCount[1]=%ld\n", mBinCount[0] + mBinCount[1]);
 		mNumHashes[0] = mParams.mNumHashes[0];
 		mNumHashes[1] = mParams.mNumHashes[1];
 		mNumBits[0] = mParams.mNumBits[0];
 		mNumBits[1] = mParams.mNumBits[1];
 
-	//	auto log2n = log2ceil(n);
+		//	auto log2n = log2ceil(n);
 
-//		mInputBitSize = numBits;
+		//		mInputBitSize = numBits;
 
 #if 0
 		for (u64 maxBin = 15; maxBin < 64; maxBin++)
@@ -264,8 +276,6 @@ namespace osuCrypto
 			}
 		}
 #endif
-		
-
 	}
 
 	void SimpleHasher1::insertBatch(ArrayView<u64> inputIdxs, MatrixView<u64> hashs)
@@ -274,35 +284,33 @@ namespace osuCrypto
 		{
 			for (u64 k = 0; k < mNumHashes[0]; ++k)
 			{
-				u64 addr = *(u64*)&hashs[j][k] % mBinCount[0];
+				u64 addr = *(u64 *)&hashs[j][k] % mBinCount[0];
 				//if(addr==0)
 				//	std::cout << "----"<<inputIdxs[j] <<"-" << addr << std::endl;
 
 				std::lock_guard<std::mutex> lock(mMtx[addr]);
-				if (std::find(mBins[addr].mIdx.begin(), mBins[addr].mIdx.end(), inputIdxs[j]) 
-					== mBins[addr].mIdx.end()) {
-					{	
-							mBins[addr].mIdx.emplace_back(inputIdxs[j]);
-							mBins[addr].hIdx.emplace_back(k);
-					//		std::cout << "1----"<<inputIdxs[j] <<"-" << addr << std::endl;
+				if (std::find(mBins[addr].mIdx.begin(), mBins[addr].mIdx.end(), inputIdxs[j]) == mBins[addr].mIdx.end())
+				{
+					{
+						mBins[addr].mIdx.emplace_back(inputIdxs[j]);
+						mBins[addr].hIdx.emplace_back(k);
+						//		std::cout << "1----"<<inputIdxs[j] <<"-" << addr << std::endl;
 					}
 				}
 			}
 
 			for (u64 k = 0; k < mNumHashes[1]; ++k)
 			{
-				u64 addrStash = *(u64*)&hashs[j][k] % mBinCount[1] + mBinCount[0];
+				u64 addrStash = *(u64 *)&hashs[j][k] % mBinCount[1] + mBinCount[0];
 
 				std::lock_guard<std::mutex> lock(mMtx[addrStash]);
-				if (std::find(mBins[addrStash].mIdx.begin(), mBins[addrStash].mIdx.end(), inputIdxs[j])
-					== mBins[addrStash].mIdx.end()) {				
+				if (std::find(mBins[addrStash].mIdx.begin(), mBins[addrStash].mIdx.end(), inputIdxs[j]) == mBins[addrStash].mIdx.end())
+				{
 					mBins[addrStash].mIdx.emplace_back(inputIdxs[j]);
-					mBins[addrStash].hIdx.emplace_back(mNumHashes[0]+k);
+					mBins[addrStash].hIdx.emplace_back(mNumHashes[0] + k);
 					//	std::cout << "2----" << inputIdxs[j] << "-" << addrStash << std::endl;
-
 				}
 			}
-
 		}
 	}
 }

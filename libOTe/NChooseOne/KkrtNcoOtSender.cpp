@@ -10,33 +10,36 @@ namespace osuCrypto
 
     void KkrtNcoOtSender::setBaseOts(
         ArrayView<block> baseRecvOts,
-        const BitVector & choices)
+        const BitVector &choices)
     {
+        //两者相等
         if (choices.size() != baseRecvOts.size())
             throw std::runtime_error("size mismatch");
-
+        //iknp接收方的那个choice的大小模128必须等于0
         if (choices.size() % (sizeof(block) * 8) != 0)
             throw std::runtime_error("only multiples of 128 are supported");
 
-
         mBaseChoiceBits = choices;
+        //根据mBaseChoiceBits的大小初始化,初始化512个prng
         mGens.resize(choices.size());
 
         for (u64 i = 0; i < baseRecvOts.size(); i++)
         {
+            //baseRecvOts为iknp接收方获得的512个一次性随机密钥，作为种子
             mGens[i].SetSeed(baseRecvOts[i]);
         }
 
         mChoiceBlks.resize(choices.size() / (sizeof(block) * 8));
         for (u64 i = 0; i < mChoiceBlks.size(); ++i)
         {
+            //可以转化成4个block，并存储
             mChoiceBlks[i] = toBlock(mBaseChoiceBits.data() + (i * sizeof(block)));
         }
     }
 
     std::unique_ptr<NcoOtExtSender> KkrtNcoOtSender::split()
     {
-        auto* raw = new KkrtNcoOtSender();
+        auto *raw = new KkrtNcoOtSender();
 
         std::vector<block> base(mGens.size());
 
@@ -53,13 +56,15 @@ namespace osuCrypto
     void KkrtNcoOtSender::init(
         u64 numOTExt)
     {
+        printf("===>>kkrt sender init,numOTExt:%ld\n", numOTExt);
         static const u8 superBlkSize(8);
 
         // round up
         numOTExt = ((numOTExt + 127) / 128) * 128;
+        printf("===>>kkrt sender init,rounduo 之后 numOTExt:%ld\n", numOTExt);
 
-        // We need two matrices, one for the senders matrix T^i_{b_i} and 
-        // one to hold the the correction values. This is sometimes called 
+        // We need two matrices, one for the senders matrix T^i_{b_i} and
+        // one to hold the the correction values. This is sometimes called
         // the u = T0 + T1 + C matrix in the papers.
         mT = std::move(MatrixView<block>(numOTExt, mGens.size() / 128));
         mCorrectionVals = std::move(MatrixView<block>(numOTExt, mGens.size() / 128));
@@ -84,9 +89,7 @@ namespace osuCrypto
             // compute at what row does the user want use to stop.
             // the code will still compute the transpose for these
             // extra rows, but it is thrown away.
-            u64 stopIdx
-                = doneIdx
-                + std::min(u64(128) * superBlkSize, mT.size()[0] - doneIdx);
+            u64 stopIdx = doneIdx + std::min(u64(128) * superBlkSize, mT.size()[0] - doneIdx);
 
             // transpose 128 columns at at time. Each column will be 128 * superBlkSize = 1024 bits long.
             for (u64 i = 0; i < numCols / 128; ++i)
@@ -94,26 +97,26 @@ namespace osuCrypto
                 // generate the columns using AES-NI in counter mode.
                 for (u64 tIdx = 0, colIdx = i * 128; tIdx < 128; ++tIdx, ++colIdx)
                 {
-                    mGens[colIdx].mAes.ecbEncCounterMode(mGens[colIdx].mBlockIdx, superBlkSize, ((block*)t.data() + superBlkSize * tIdx));
+                    mGens[colIdx].mAes.ecbEncCounterMode(mGens[colIdx].mBlockIdx, superBlkSize, ((block *)t.data() + superBlkSize * tIdx));
                     mGens[colIdx].mBlockIdx += superBlkSize;
                 }
 
-                // transpose our 128 columns of 1024 bits. We will have 1024 rows, 
+                // transpose our 128 columns of 1024 bits. We will have 1024 rows,
                 // each 128 bits wide.
                 sse_transpose128x1024(t);
 
                 // This is the index of where we will store the matrix long term.
                 // doneIdx is the starting row. i is the offset into the blocks of 128 bits.
                 // __restrict isn't crucial, it just tells the compiler that this pointer
-                // is unique and it shouldn't worry about pointer aliasing. 
-                block* __restrict mTIter = mT.data() + doneIdx * mT.size()[1] + i;
+                // is unique and it shouldn't worry about pointer aliasing.
+                block *__restrict mTIter = mT.data() + doneIdx * mT.size()[1] + i;
 
                 for (u64 rowIdx = doneIdx, j = 0; rowIdx < stopIdx; ++j)
                 {
                     // because we transposed 1024 rows, the indexing gets a bit weird. But this
                     // is the location of the next row that we want. Keep in mind that we had long
-                    // **contiguous** columns. 
-                    block* __restrict tIter = (((block*)t.data()) + j);
+                    // **contiguous** columns.
+                    block *__restrict tIter = (((block *)t.data()) + j);
 
                     // do the copy!
                     for (u64 k = 0; rowIdx < stopIdx && k < 128; ++rowIdx, ++k)
@@ -124,7 +127,6 @@ namespace osuCrypto
                         mTIter += mT.size()[1];
                     }
                 }
-
             }
 
             doneIdx = stopIdx;
@@ -134,7 +136,7 @@ namespace osuCrypto
     void KkrtNcoOtSender::encode(
         u64 otIdx,
         const ArrayView<block> inputword,
-        block& val)
+        block &val)
     {
 
 #ifndef NDEBUG
@@ -146,14 +148,12 @@ namespace osuCrypto
         if (eq(mCorrectionVals[otIdx][0], ZeroBlock))
             throw std::invalid_argument("appears that we haven't received the receiver's choice yet. " LOCATION);
 
-
 #endif // !NDEBUG
 
         std::array<block, 10> codeword;
 
-        auto* corVal = mCorrectionVals.data() + otIdx * mCorrectionVals.size()[1];
-        auto* tVal = mT.data() + otIdx * mT.size()[1];
-
+        auto *corVal = mCorrectionVals.data() + otIdx * mCorrectionVals.size()[1];
+        auto *tVal = mT.data() + otIdx * mT.size()[1];
 
         // This is the hashing phase. Here we are using pseudo-random codewords.
         // That means we assume inputword is a hash of some sort.
@@ -162,17 +162,15 @@ namespace osuCrypto
             block t0 = corVal[i] ^ inputword[i];
             block t1 = t0 & mChoiceBlks[i];
 
-            codeword[i]
-                = tVal[i]
-                ^ t1;
+            codeword[i] = tVal[i] ^ t1;
         }
 
 #ifdef KKRT_SHA_HASH
 
-        SHA1  sha1;
+        SHA1 sha1;
         u8 hashBuff[SHA1::HashSize];
         // hash it all to get rid of the correlation.
-        sha1.Update((u8*)codeword.data(), sizeof(block) * mT.size()[1]);
+        sha1.Update((u8 *)codeword.data(), sizeof(block) * mT.size()[1]);
         sha1.Final(hashBuff);
         val = toBlock(hashBuff);
 #else
@@ -183,8 +181,6 @@ namespace osuCrypto
         for (u64 i = 0; i < mT.size()[1]; ++i)
             val = val ^ codeword[i] ^ aesBuff[i];
 #endif
-
-
     }
 
     void KkrtNcoOtSender::getParams(
@@ -193,33 +189,31 @@ namespace osuCrypto
         u64 statSecParam,
         u64 inputBitCount,
         u64 inputCount,
-        u64 & inputBlkSize,
-        u64 & baseOtCount)
+        u64 &inputBlkSize,
+        u64 &baseOtCount)
     {
 
         //if (maliciousSecure) throw std::runtime_error("");
-        baseOtCount = roundUpTo(compSecParm * (maliciousSecure? 7 : 4), 128);
+        baseOtCount = roundUpTo(compSecParm * (maliciousSecure ? 7 : 4), 128);
         inputBlkSize = baseOtCount / 128;
     }
 
-    void KkrtNcoOtSender::recvCorrection(Channel & chl, u64 recvCount)
+    void KkrtNcoOtSender::recvCorrection(Channel &chl, u64 recvCount)
     {
 
 #ifndef NDEBUG
         if (recvCount > mCorrectionVals.size()[0] - mCorrectionIdx)
             throw std::runtime_error("bad receiver, will overwrite the end of our buffer" LOCATION);
-#endif // !NDEBUG        
+#endif // !NDEBUG
 
         // receive the next OT correction values. This will be several rows of the form u = T0 + T1 + C(w)
         // there c(w) is a pseudo-random code.
         auto dest = mCorrectionVals.begin() + (mCorrectionIdx * mCorrectionVals.size()[1]);
         chl.recv(dest,
-            recvCount * sizeof(block) * mCorrectionVals.size()[1]);
+                 recvCount * sizeof(block) * mCorrectionVals.size()[1]);
 
         // update the index of there we should store the next set of correction values.
         mCorrectionIdx += recvCount;
     }
-
-
 
 }

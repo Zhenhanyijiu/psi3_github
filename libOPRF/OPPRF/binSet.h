@@ -20,35 +20,31 @@ namespace osuCrypto
 	//	u64 mSenderBinStashSize;*/
 	//};
 
-    class binSet
-    {
-    public:
+	class binSet
+	{
+	public:
 		binSet();
-        ~binSet();
-		
+		~binSet();
 
-        u64 mN, mParties, mMyIdx, mStatSecParam, mNcoInputBlkSize;// , mOtMsgBlkSize;
-        block mHashingSeed;
+		u64 mN, mParties, mMyIdx, mStatSecParam, mNcoInputBlkSize; // , mOtMsgBlkSize;
+		block mHashingSeed;
 		u64 mMaskSize;
 		u64 mOpt;
 
 		std::vector<std::vector<block>> mNcoInputBuff; //hash(x)
 
-	//	OPPRFSender aaa;
+		//	OPPRFSender aaa;
 		std::vector<block> mXsets;
 		std::vector<u8> mAllOPRFsSimpleHashing;
-		
 
 		CuckooHasher1 mCuckooBins;
 		SimpleHasher1 mSimpleBins;
-      
 
-		void init(u64 myIdx, u64 nParties, u64 setSize, u64 statSecParam, u64 opt, bool noStash=0);
+		void init(u64 myIdx, u64 nParties, u64 setSize, u64 statSecParam, u64 opt, bool noStash = 0);
 
-		void hashing2Bins(std::vector<block>& inputs, int numThreads);
+		void hashing2Bins(std::vector<block> &inputs, int numThreads);
 
 		void allOPRFs(u64 idxParty);
-
-    };
+	};
 
 }

@@ -20,6 +20,7 @@
 #include "OPPRF/OPPRFSender.h"
 #include <Common/ByteStream.h>
 #include <string.h>
+#include <Crypto/sha1.h>
 
 using namespace osuCrypto;
 //参数type_security没有意义
@@ -31,27 +32,45 @@ inline void party_psi3_only(u64 myIdx, u64 setSize,
 							u64 type_okvs, u64 type_security)
 {
 	// u32 PORT_S[3] = {10200, 10201, 10202};
-	printf("===>>data size:%ld\n", setSize);
+	printf("===>>(in party_psi3_only)setSize:%ld,data_set.size:%d\n", setSize, data_set.size());
+	printf("====>>>##per_id_size:%ld\n", data_set[0].size());
+	int count = 0;
+	for (int i = 0; i < data_set.size(); i++)
+	{
+		if (data_set[i].size() == 16)
+		{
+			count++;
+		}
+		else
+		{
+			// printf("===>>not 16:::%ld\n", data_set[i].size());
+		}
+	}
+	printf("===>>>###count_debug:%d\n", count);
 	u64 nParties = 3;
+	int ff = 8;
 	// std::fstream textout;
 	// textout.open("./runtime_" + myIdx, textout.app | textout.out);
 
 #pragma region setup
+	// u64 psiSecParam = 40, bitSize = 128, numChannelThreads = 1, okvsTableSize = setSize;
 	u64 psiSecParam = 40, bitSize = 128, numChannelThreads = 1, okvsTableSize = setSize;
 	Timer timer;
 	PRNG prng(_mm_set_epi32(4253465, 3434565, myIdx, myIdx));
 	// (*(u64*)&prng.get<block>()) % setSize;
 
-	if (type_okvs == GbfOkvs)
-		okvsTableSize = okvsLengthScale * setSize;
-	else if (type_okvs == PolyOkvs)
-		okvsTableSize = setSize;
+	// if (type_okvs == GbfOkvs)
+	// 	okvsTableSize = okvsLengthScale * setSize;
+	// else if (type_okvs == PolyOkvs)
+	// 	okvsTableSize = setSize;
+	// std::string ip_array[3][3] = {{"", "", ""},
+	// 							  {"127.0.0.1", "", ""},
+	// 							  {"10.100.3.15", "10.100.3.15", ""}};
 
 	std::string name("psi3");
 	BtIOService ios(0);
 	std::vector<BtEndpoint> ep(nParties);
 	std::vector<std::vector<Channel *>> chls(nParties);
-
 	for (u64 i = 0; i < nParties; ++i)
 	{
 		if (i < myIdx)
@@ -62,7 +81,13 @@ inline void party_psi3_only(u64 myIdx, u64 setSize,
 			// u32 port = 10200 + i * 100 + myIdx;
 			//get the same port; i=1 & pIdx=2 =>port=102
 			//channel bwt i and pIdx, where i is sender
-			ep[i].start(ios, ip_array[myIdx].data(), port_arrays[myIdx][i], false, name);
+			// ep[i].start(ios, ip_array[myIdx].data(), port_arrays[myIdx][i], false, name);
+			char ip_char[32] = {0};
+			memset(ip_char, 0, 32);
+			memcpy(ip_char, ip_array[i].data(), ip_array[i].size());
+			ep[i].start(ios, ip_char, port_arrays[myIdx][i], false, name);
+			// ep[i].start(ios, ip_array[i].data(), port_arrays[myIdx][i], false, name);
+			// ep[i].start(ios, ip_array[myIdx][i], port_arrays[myIdx][i], false, name);
 		}
 		else if (i > myIdx)
 		{
@@ -72,7 +97,14 @@ inline void party_psi3_only(u64 myIdx, u64 setSize,
 			// u32 port = 10200 + myIdx * 100 + i;
 			//get the same port; i=2 & pIdx=1 =>port=102
 			//channel bwt i and pIdx, where i is receiver
-			ep[i].start(ios, ip_array[i].data(), port_arrays[myIdx][i], true, name);
+			// ep[i].start(ios, ip_array[i].data(), port_arrays[myIdx][i], true, name);
+			char ip_char[32] = {0};
+			memset(ip_char, 0, 32);
+			memcpy(ip_char, ip_array[myIdx].data(), ip_array[myIdx].size());
+			printf("===in psi3_process_only,i:%d,curr_ip:%s\n", i, ip_char);
+			ep[i].start(ios, ip_char, port_arrays[myIdx][i], true, name);
+			// ep[i].start(ios, ip_array[myIdx].data(), port_arrays[myIdx][i], true, name);
+			// ep[i].start(ios, "0", port_arrays[myIdx][i], true, name);
 		}
 	}
 
@@ -96,13 +128,19 @@ inline void party_psi3_only(u64 myIdx, u64 setSize,
 		}
 	}
 
-	u64 maskSize = roundUpTo(psiSecParam + 2 * std::log2(setSize) - 1, 8) / 8;
+	// u64 maskSize = roundUpTo(psiSecParam + 2 * std::log2(setSize) - 1, 8) / 8;
 
-	PRNG prngSame(_mm_set_epi32(4253465, 3434565, 234435, 23987045)), prngDiff(_mm_set_epi32(434653, 23, myIdx, myIdx));
+	// PRNG prngSame(_mm_set_epi32(4253465, 3434565, 234435, 23987045)), prngDiff(_mm_set_epi32(434653, 23, myIdx, myIdx));
 	std::vector<block> inputSet(setSize);
+	SHA1 sha1_hash;
+	u8 output[20];
 	for (u64 i = 0; i < setSize; i++)
 	{
-		memcpy((char *)(inputSet.data() + i), data_set[i].data(), 16);
+		// memcpy((char *)(inputSet.data() + i), data_set[i].data(), 16);
+		sha1_hash.Reset();
+		sha1_hash.Update(data_set[i].data(), data_set[i].size());
+		sha1_hash.Final(output);
+		inputSet[i] = *(block *)output;
 	}
 	// for (u64 i = 0; i < expected_intersection; ++i)
 	// 	inputSet[i] = prngSame.get<block>();
@@ -111,7 +149,7 @@ inline void party_psi3_only(u64 myIdx, u64 setSize,
 	// 	inputSet[i] = prngDiff.get<block>();
 #pragma endregion
 
-	u64 num_threads = nParties - 1; //for party 1
+	// u64 num_threads = nParties - 1; //for party 1
 
 	timer.reset();
 	auto start = timer.setTimePoint("start");
@@ -130,7 +168,7 @@ inline void party_psi3_only(u64 myIdx, u64 setSize,
 		//generating aes key and sends it to party 2
 		aesKeys[0] = prng.get<block>();
 		chls[1][0]->asyncSend(&aesKeys[0], sizeof(block)); //sending aesKeys_party1 to party 2 (idx=1)
-
+		printf("===>>id0:1....\n");
 		/*	std::cout << IoStream::lock;
 			std::cout << aesKeys_party1 << std::endl;
 			std::cout << IoStream::unlock;*/
@@ -150,39 +188,53 @@ inline void party_psi3_only(u64 myIdx, u64 setSize,
 		AES party2_AES(aesKeys[1]);
 		party2_AES.ecbEncBlocks(inputSet.data(), inputSet.size(), ciphertexts[1].data()); //compute F_ki(xi)
 	}
-
+	bool noStash = 0;
 	//====================================
 	//============compute OPPRF========
+	//节点0和2之间进行opprf
 	if (myIdx == 0 || myIdx == 2) //for opprf btw party 1 and 3
 	{
 		std::vector<KkrtNcoOtReceiver> otRecv(2);
 		std::vector<KkrtNcoOtSender> otSend(2);
-		OPPRFSender send;
-		OPPRFReceiver recv;
+		OPPRFSender send;	//opprf发送方
+		OPPRFReceiver recv; //opprf接收方
 		binSet bins;
-
-		bins.init(myIdx, 2, setSize, psiSecParam, 0, 1);
+		//opt==0
+		//psiSecParam=40,myIdx=0
+		bins.init(myIdx, 2, setSize, psiSecParam, 0, noStash); //nostash==1
 		u64 otCountSend = bins.mSimpleBins.mBins.size();
 		u64 otCountRecv = bins.mCuckooBins.mBins.size();
+		printf(">>>(mSimpleBins)otCountSend:%ld\n", otCountSend);
+		printf(">>>(mCuckooBins)otCountRecv:%ld\n", otCountRecv);
 
 		if (myIdx == 0)
 		{
 			//I am a sender -> party_1
-			send.init(bins.mOpt, 2, setSize, psiSecParam, bitSize, chls[2], otCountSend, otSend[1], otRecv[1], prng.get<block>(), false);
+			send.init(bins.mOpt, 2, setSize, psiSecParam, bitSize,
+					  chls[2], otCountSend,
+					  otSend[1],
+					  otRecv[1],
+					  prng.get<block>(), false);
 		}
 		else if (myIdx == 2)
 		{
 			//I am a recv <-party_3
-			recv.init(bins.mOpt, 2, setSize, psiSecParam, bitSize, chls[0], otCountRecv, otRecv[0], otSend[0], ZeroBlock, false);
+			recv.init(bins.mOpt, 2, setSize, psiSecParam, bitSize,
+					  chls[0], otCountRecv,
+					  otRecv[0],
+					  otSend[0],
+					  ZeroBlock, false);
 		}
-
-		bins.hashing2Bins(inputSet, 1);
-
+		printf("===>>id0:2....\n");
+		bins.hashing2Bins(inputSet, 1); //布谷鸟bins
 		if (myIdx == 0)
 		{
+			printf("===>>id0:2.3333....\n");
 			//I am a sender to my next neigbour
 			send.getOPRFkeys(1, bins, chls[2], false);
+			printf("===>>id0:2.2222....\n");
 			send.sendSS(1, bins, ciphertexts[0], chls[2]);
+			printf("===>>id0:2.111....\n");
 		}
 		else if (myIdx == 2)
 		{
@@ -190,6 +242,8 @@ inline void party_psi3_only(u64 myIdx, u64 setSize,
 			recv.getOPRFkeys(0, bins, chls[0], false);
 			recv.recvSS(0, bins, ciphertexts[2], chls[0]);
 		}
+		printf("===>>id0:3....\n");
+		int as = 9;
 	}
 
 	/*std::cout << IoStream::lock;
@@ -218,7 +272,7 @@ inline void party_psi3_only(u64 myIdx, u64 setSize,
 		OPPRFReceiver recv;
 		binSet bins;
 
-		bins.init(myIdx, 2, setSize, psiSecParam, 0, 1);
+		bins.init(myIdx, 2, setSize, psiSecParam, 0, noStash);
 		//	bins.mMaskSize = 8;
 		u64 otCountSend = bins.mSimpleBins.mBins.size();
 		u64 otCountRecv = bins.mCuckooBins.mBins.size();
@@ -226,12 +280,20 @@ inline void party_psi3_only(u64 myIdx, u64 setSize,
 		if (myIdx == 1)
 		{
 			//I am a sender -> party_2
-			send.init(bins.mOpt, 2, setSize, psiSecParam, bitSize, chls[2], otCountSend, otSend[1], otRecv[1], prng.get<block>(), false);
+			send.init(bins.mOpt, 2, setSize, psiSecParam, bitSize,
+					  chls[2], otCountSend,
+					  otSend[1],
+					  otRecv[1],
+					  prng.get<block>(), false);
 		}
 		else if (myIdx == 2)
 		{
 			//I am a recv <-party_3
-			recv.init(bins.mOpt, 2, setSize, psiSecParam, bitSize, chls[1], otCountRecv, otRecv[0], otSend[0], ZeroBlock, false);
+			recv.init(bins.mOpt, 2, setSize, psiSecParam, bitSize,
+					  chls[1], otCountRecv,
+					  otRecv[0],
+					  otSend[0],
+					  ZeroBlock, false);
 		}
 
 		//##########################
